@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub enum ValueRef<'a> {
+    Bool(u8),
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
@@ -45,6 +46,7 @@ pub enum ValueRef<'a> {
 impl<'a> PartialEq for ValueRef<'a> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (ValueRef::Bool(a), ValueRef::Bool(b)) => *a == *b,
             (ValueRef::UInt8(a), ValueRef::UInt8(b)) => *a == *b,
             (ValueRef::UInt16(a), ValueRef::UInt16(b)) => *a == *b,
             (ValueRef::UInt32(a), ValueRef::UInt32(b)) => *a == *b,
@@ -88,6 +90,7 @@ impl<'a> PartialEq for ValueRef<'a> {
 impl<'a> fmt::Display for ValueRef<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ValueRef::Bool(v) => fmt::Display::fmt(v, f),
             ValueRef::UInt8(v) => fmt::Display::fmt(v, f),
             ValueRef::UInt16(v) => fmt::Display::fmt(v, f),
             ValueRef::UInt32(v) => fmt::Display::fmt(v, f),
@@ -158,6 +161,7 @@ impl<'a> fmt::Display for ValueRef<'a> {
 impl<'a> convert::From<ValueRef<'a>> for SqlType {
     fn from(source: ValueRef<'a>) -> Self {
         match source {
+            ValueRef::Bool(_) => SqlType::Bool,
             ValueRef::UInt8(_) => SqlType::UInt8,
             ValueRef::UInt16(_) => SqlType::UInt16,
             ValueRef::UInt32(_) => SqlType::UInt32,
@@ -222,6 +226,7 @@ impl<'a> ValueRef<'a> {
 impl<'a> From<ValueRef<'a>> for Value {
     fn from(borrowed: ValueRef<'a>) -> Self {
         match borrowed {
+            ValueRef::Bool(v) => Value::Bool(v),
             ValueRef::UInt8(v) => Value::UInt8(v),
             ValueRef::UInt16(v) => Value::UInt16(v),
             ValueRef::UInt32(v) => Value::UInt32(v),
@@ -273,6 +278,17 @@ impl<'a> From<&'a [u8]> for ValueRef<'a> {
     }
 }
 
+impl<'a> From<bool> for ValueRef<'a> {
+    fn from(v: bool) -> ValueRef<'static> {
+        let mut b = 0;
+        if v {
+            b = 1;
+        }
+
+        ValueRef::Bool(b)
+    }
+}
+
 macro_rules! from_number {
     ( $($t:ty: $k:ident),* ) => {
         $(
@@ -303,6 +319,7 @@ from_number! {
 impl<'a> From<&'a Value> for ValueRef<'a> {
     fn from(value: &'a Value) -> ValueRef<'a> {
         match value {
+            Value::Bool(v) => ValueRef::Bool(*v),
             Value::UInt8(v) => ValueRef::UInt8(*v),
             Value::UInt16(v) => ValueRef::UInt16(*v),
             Value::UInt32(v) => ValueRef::UInt32(*v),
@@ -383,6 +400,21 @@ impl<'a> From<ValueRef<'a>> for AppDateTime {
                 panic!("Can't convert ValueRef::{} into {}.", from, "DateTime<Tz>")
             }
         }
+    }
+}
+
+impl<'a> From<ValueRef<'a>> for bool {
+    fn from(value: ValueRef<'a>) -> Self {
+        if let ValueRef::Bool(u) = value {
+            return if u == 1 {
+                true
+            } else {
+                false
+            }
+        }
+
+        let from = format!("{}", SqlType::from(value.clone()));
+        panic!("Can't convert ValueRef::{} into {}", from, "Bool");
     }
 }
 

@@ -22,6 +22,7 @@ pub(crate) type AppDate = Date<Tz>;
 /// Client side representation of a value of Clickhouse column.
 #[derive(Clone, Debug)]
 pub enum Value {
+    Bool(u8),
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
@@ -49,6 +50,7 @@ pub enum Value {
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (Value::Bool(a), Value::Bool(b)) => *a == *b,
             (Value::UInt8(a), Value::UInt8(b)) => *a == *b,
             (Value::UInt16(a), Value::UInt16(b)) => *a == *b,
             (Value::UInt32(a), Value::UInt32(b)) => *a == *b,
@@ -84,6 +86,7 @@ impl PartialEq for Value {
 impl Value {
     pub(crate) fn default(sql_type: SqlType) -> Value {
         match sql_type {
+            SqlType::Bool => Value::Bool(0),
             SqlType::UInt8 => Value::UInt8(0),
             SqlType::UInt16 => Value::UInt16(0),
             SqlType::UInt32 => Value::UInt32(0),
@@ -121,6 +124,7 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Value::Bool(ref v) => fmt::Display::fmt(v, f),
             Value::UInt8(ref v) => fmt::Display::fmt(v, f),
             Value::UInt16(ref v) => fmt::Display::fmt(v, f),
             Value::UInt32(ref v) => fmt::Display::fmt(v, f),
@@ -191,6 +195,7 @@ impl fmt::Display for Value {
 impl convert::From<Value> for SqlType {
     fn from(source: Value) -> Self {
         match source {
+            Value::Bool(_) => SqlType::Bool,
             Value::UInt8(_) => SqlType::UInt8,
             Value::UInt16(_) => SqlType::UInt16,
             Value::UInt32(_) => SqlType::UInt32,
@@ -296,6 +301,15 @@ impl convert::From<&[u8]> for Value {
     }
 }
 
+impl convert::From<bool> for Value {
+    fn from(v: bool) -> Value {
+        match v {
+            true => Value::Bool(1_u8),
+            false => Value::Bool(0_u8),
+        }
+    }
+}
+
 value_from! {
     u8: UInt8,
     u16: UInt16,
@@ -384,6 +398,24 @@ impl convert::From<Value> for AppDateTime {
             _ => {
                 let from = SqlType::from(v);
                 panic!("Can't convert Value::{} into {}", from, "DateTime<Tz>")
+            }
+        }
+    }
+}
+
+impl convert::From<Value> for bool {
+    fn from(v: Value) -> bool {
+        match v {
+            Value::Bool(u) => {
+                return if u == 1 {
+                    true
+                } else {
+                    false
+                }
+            },
+            _ => {
+                let from = SqlType::from(v);
+                panic!("Can't convert Value::{} into {}", from, "Bool")
             }
         }
     }

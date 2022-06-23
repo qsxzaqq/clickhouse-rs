@@ -420,7 +420,7 @@ impl<K: ColumnType> Column<K> {
                     data,
                     _marker: marker::PhantomData,
                 })
-            }
+            },
             _ => {
                 if let Some(data) = self.data.cast_to(&self.data, &dst_type) {
                     let name = self.name().to_owned();

@@ -199,6 +199,7 @@ where
     fn at(&self, index: usize) -> ValueRef {
         let v: Value = self.data.at(index).into();
         match v {
+            Value::Bool(x) => ValueRef::Bool(x),
             Value::UInt8(x) => ValueRef::UInt8(x),
             Value::UInt16(x) => ValueRef::UInt16(x),
             Value::UInt32(x) => ValueRef::UInt32(x),

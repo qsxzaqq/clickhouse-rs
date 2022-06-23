@@ -1348,3 +1348,38 @@ async fn test_ipv6_db_representation() -> Result<(), Error> {
     assert_eq!(ip3, "1::");
     Ok(())
 }
+
+#[cfg(feature = "tokio_io")]
+#[tokio::test]
+async fn test_bool() -> Result<(), Error> {
+    let ddl = r"
+        CREATE TABLE IF NOT EXISTS clickhouse_test_bool (
+            bool_v Bool
+        ) ENGINE = Memory
+    ";
+
+    let source_block = Block::new() // 0 False, 1: true
+        .column("bool_v", vec![true, true, false]);
+
+    let pool = Pool::new(database_url());
+
+    let mut client = pool.get_handle().await?;
+    client
+        .execute("DROP TABLE IF EXISTS clickhouse_test_bool")
+        .await?;
+    client.execute(ddl).await?;
+    client
+        .insert("clickhouse_test_bool", source_block)
+        .await?;
+
+    let block = client
+        .query("SELECT * FROM clickhouse_test_bool")
+        .fetch_all()
+        .await?;
+
+    let ip1: bool = block.get(0, "bool_v")?;
+
+    println!("{:?}", ip1);
+
+    Ok(())
+}

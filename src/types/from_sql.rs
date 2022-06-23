@@ -151,6 +151,28 @@ impl<'a> FromSql<'a> for uuid::Uuid {
     }
 }
 
+impl<'a> FromSql<'a> for bool {
+    fn from_sql(value: ValueRef<'a>) -> FromSqlResult<Self> {
+        match value {
+            ValueRef::Bool(v) => {
+                let mut nv = false;
+                if v == 1 {
+                    nv = true;
+                }
+
+                Ok(nv)
+            }
+            _ => {
+                let from = SqlType::from(value).to_string();
+                Err(Error::FromSql(FromSqlError::InvalidType {
+                    src: from,
+                    dst: "Bool".into(),
+                }))
+            }
+        }
+    }
+}
+
 macro_rules! from_sql_vec_impl {
     ( $( $t:ty: $k:pat => $f:expr ),* ) => {
         $(

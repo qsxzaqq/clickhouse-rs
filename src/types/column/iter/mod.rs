@@ -807,6 +807,29 @@ impl<'a> Iterable<'a, Simple> for Date<Tz> {
     }
 }
 
+/*impl<'a> Iterable<'a, Simple> for bool {
+    type Iter = slice::Iter<'a, bool>;
+
+    fn iter(column: &'a Column<Simple>, column_type: SqlType) -> Result<Self::Iter> {
+
+        if column_type != SqlType::Bool {
+            return Err(Error::FromSql(FromSqlError::InvalidType {
+                src: column.sql_type().to_string(),
+                dst: SqlType::Bool.to_string(),
+            }));
+        };
+
+        unsafe {
+            let mut ptr: *const u8 = ptr::null();
+            let mut size: usize = 0;
+            column.get_internal(&[&mut ptr, &mut size as *mut usize as *mut *const u8], 0)?;
+            assert_ne!(ptr, ptr::null());
+
+            return Ok(slice::from_raw_parts(ptr as *const bool, size).iter());
+        }
+    }
+}*/
+
 fn date_iter(
     column: &Column<Simple>,
 ) -> Result<(*const u8, usize, Tz, Option<u32>)> {
